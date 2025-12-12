@@ -8,7 +8,7 @@ import joblib
 # -----------------------------
 @st.cache_resource
 def load_models():
-    classifier = joblib.load("best_classifier_XGB_py313.pkl")
+    classifier = joblib.load("best_classifier_XGBClassifier_py313.pkl")
     regressor = joblib.load("best_regressor_LR_py313.pkl")
     return classifier, regressor
 
@@ -105,3 +105,4 @@ if st.button("Predict"):
 
     except Exception as e:
         st.error(f"Prediction Error: {str(e)}")
+
