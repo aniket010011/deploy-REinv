@@ -113,4 +113,21 @@ def prepare_model_row():
 
 # -----------------------------
 # Prediction
-# ------------------------
+# -----------------------------
+if st.button("Predict"):
+    full_row = prepare_model_row()
+
+    st.subheader("🛠 Prepared Model Input Row (after alignment)")
+    st.dataframe(full_row, use_container_width=True)
+
+    try:
+        class_pred = classifier.predict(full_row)[0]
+        reg_pred = regressor.predict(full_row)[0]
+
+        class_label = "✅ Good Investment" if class_pred == 1 else "❌ Not a Good Investment"
+
+        st.success(f"### Investment Classification: **{class_label}**")
+        st.info(f"### Estimated Resale Value: **₹ {reg_pred:,.0f}**")
+
+    except Exception as e:
+        st.error(f"❌ Prediction Error: {str(e)}")
