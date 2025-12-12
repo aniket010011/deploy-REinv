@@ -10,7 +10,7 @@ st.set_page_config(page_title="Real Estate Investment Predictor", layout="wide")
 @st.cache_resource
 def load_models():
     clf = joblib.load("best_classifier_XGBClassifier_py313.pkl")        # retrained model
-    reg = joblib.load("best_regressor_LR_final.pkl")          # retrained model
+    reg = joblib.load("best_regressor_LR_py313.pkl")          # retrained model
     return clf, reg
 
 classifier, regressor = load_models()
@@ -78,3 +78,4 @@ if st.button("Predict"):
 
     except Exception as e:
         st.error(f"Prediction Error: {e}")
+
