@@ -8,7 +8,7 @@ import joblib
 # -----------------------------
 @st.cache_resource
 def load_models():
-    classifier = joblib.load("best_classifier_LGBMClassifier_py313.pkl")
+    classifier = joblib.load("second_best_classifier_XGBClassifier_py313.pkl")
     regressor = joblib.load("best_regressor_LinearRegression_py313.pkl")
     return classifier, regressor
 
@@ -82,6 +82,7 @@ if st.button("Predict"):
         st.write(f"Probability of GOOD investment: **{prob:.2f}**")
     except:
         pass
+
 
 
 
