@@ -8,8 +8,8 @@ import pickle
 # -----------------------------
 @st.cache_resource
 def load_models():
-    classifier = pickle.load(open("best_classifier_LGBMClassifier.pkl", "rb"))
-    regressor = pickle.load(open("best_regressor_LinearRegression.pkl", "rb"))
+    classifier = joblib.load("best_classifier_LGBMClassifier_py311.pkl")
+    regressor = joblib.load("best_regressor_LinearRegression_py311.pkl")
     return classifier, regressor
 
 classifier, regressor = load_models()
@@ -82,4 +82,5 @@ if st.button("Predict"):
         st.write(f"Probability of GOOD investment: **{prob:.2f}**")
     except:
         pass
+
 
