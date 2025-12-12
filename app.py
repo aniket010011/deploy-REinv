@@ -69,7 +69,7 @@ def prepare_model_row():
 
     for col in EXPECTED_FEATURES:
 
-        # Direct matches
+        # Mapped inputs
         if col == "State":
             row[col] = state
 
@@ -95,18 +95,18 @@ def prepare_model_row():
             row[col] = furnishing
 
         else:
-            # Missing columns → decide type based on training pipeline
+            # Missing values
             if col in CATEGORICAL_COLS:
                 row[col] = "Unknown"
             else:
-                row[col] = np.nan   # <-- IMPORTANT FIX!
+                row[col] = np.nan  # numeric missing
 
     df = pd.DataFrame([row])
 
-    # Ensure numeric cols are float
+    # Convert ALL numeric columns to float64
     for c in df.columns:
         if c not in CATEGORICAL_COLS:
-            df[c] = df[c].astype("float64")
+            df[c] = pd.to_numeric(df[c], errors="coerce")  # converts None → NaN → float
 
     return df
     
@@ -130,4 +130,5 @@ if st.button("Predict"):
 
     except Exception as e:
         st.error(f"❌ Prediction Error: {str(e)}")
+
 
