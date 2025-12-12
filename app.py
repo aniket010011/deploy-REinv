@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pickle
+import joblib
 
 # -----------------------------
 # Load Models
@@ -82,5 +82,6 @@ if st.button("Predict"):
         st.write(f"Probability of GOOD investment: **{prob:.2f}**")
     except:
         pass
+
 
 
