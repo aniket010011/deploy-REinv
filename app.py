@@ -65,48 +65,36 @@ st.dataframe(input_preview, use_container_width=True)
 # Prepare row for pipeline
 # -----------------------------
 def prepare_model_row():
+
+    # Start row dictionary
     row = {}
 
+    # Fill user-provided fields
+    row["State"] = state
+    row["City"] = city
+    row["BHK"] = float(bhk)
+    row["Size_in_SqFt"] = float(area_sqft)
+    row["Furnished_Status"] = furnishing
+    row["Crime_Rate"] = float(crime_rate)
+    row["Infrastructure_Score"] = float(infrastructure_score)
+    row["Age_of_Property"] = float(age)
+
+    # Fill all other model columns with NaN (numeric) or "Unknown" (categorical)
     for col in EXPECTED_FEATURES:
 
-        # Mapped inputs
-        if col == "State":
-            row[col] = state
-
-        elif col == "City":
-            row[col] = city
-
-        elif col == "Size_in_SqFt":
-            row[col] = float(area_sqft)
-
-        elif col == "BHK":
-            row[col] = float(bhk)
-
-        elif col == "Crime_Rate":
-            row[col] = float(crime_rate)
-
-        elif col == "Infrastructure_Score":
-            row[col] = float(infrastructure_score)
-
-        elif col == "Age_of_Property":
-            row[col] = float(age)
-
-        elif col == "Furnished_Status":
-            row[col] = furnishing
-
-        else:
-            # Missing values
+        if col not in row:  # not user-entered
             if col in CATEGORICAL_COLS:
                 row[col] = "Unknown"
             else:
                 row[col] = np.nan  # numeric missing
 
+    # Convert to DataFrame
     df = pd.DataFrame([row])
 
-    # Convert ALL numeric columns to float64
-    for c in df.columns:
-        if c not in CATEGORICAL_COLS:
-            df[c] = pd.to_numeric(df[c], errors="coerce")  # converts None → NaN → float
+    # FINAL CRITICAL FIX: Force numeric dtypes
+    for col in df.columns:
+        if col not in CATEGORICAL_COLS:
+            df[col] = pd.to_numeric(df[col], errors="coerce")  # ensures float64 + NaN
 
     return df
     
@@ -130,5 +118,6 @@ if st.button("Predict"):
 
     except Exception as e:
         st.error(f"❌ Prediction Error: {str(e)}")
+
 
 
