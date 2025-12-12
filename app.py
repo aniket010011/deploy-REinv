@@ -1,81 +1,98 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import numpy as np
 
 st.set_page_config(page_title="Real Estate Investment Predictor", layout="wide")
 
-# --------------------------------------
-# Load models
-# --------------------------------------
+# ============================================================
+# 1. Load Models (Classifier + Regressor)
+# ============================================================
+
 @st.cache_resource
 def load_models():
-    clf = joblib.load("best_classifier_XGBClassifier_py313.pkl")        # retrained model
-    reg = joblib.load("best_regressor_LR_py313.pkl")          # retrained model
+    clf = joblib.load("best_classifier_XGBClassifier_py313.pkl")
+    reg = joblib.load("best_regressor_LR_py313.pkl")
     return clf, reg
 
 classifier, regressor = load_models()
 
-# --------------------------------------
-# Input UI
-# --------------------------------------
+# ============================================================
+# 2. Fixed Feature Order (MUST MATCH TRAINING DATA)
+# ============================================================
+
+MODEL_FEATURES = [
+    "State",
+    "City",
+    "Furnished_Status",
+    "Size_in_SqFt",
+    "BHK",
+    "Crime_Rate",
+    "Infrastructure_Score",
+    "Age_of_Property"
+]
+
+# ============================================================
+# 3. Streamlit Title
+# ============================================================
+
 st.title("🏡 Real Estate Investment Predictor")
 
-st.header("📌 Enter Property Details")
+st.write("Enter property features below to predict **Good Investment** and **Future 5Y Price**.")
 
-col1, col2 = st.columns(2)
+# ============================================================
+# 4. User Input Form
+# ============================================================
 
-with col1:
-    state = st.selectbox("State",
-                         ["Maharashtra","Delhi","Karnataka","Tamil Nadu","Gujarat",
-                          "West Bengal","Rajasthan","Uttar Pradesh","Telangana"])
+state = st.selectbox("State", ["Maharashtra", "Karnataka", "Delhi", "Tamil Nadu"])
+city = st.text_input("City", "Mumbai")
+size_sqft = st.number_input("Area (SqFt)", min_value=100, max_value=10000, value=1200)
+bhk = st.selectbox("BHK", [1, 2, 3, 4, 5])
+furnish = st.selectbox("Furnishing Status", ["Unfurnished", "Semi-Furnished", "Furnished"])
+crime = st.slider("Crime Rate (per 1000)", 0.0, 10.0, 2.5, 0.1)
+infra = st.slider("Infrastructure Score", 0.0, 10.0, 7.0, 0.1)
+age = st.number_input("Age of Property (Years)", min_value=0, max_value=100, value=10)
 
-    city = st.text_input("City", "Mumbai")
+# ------------------------------------------------------------
+# 5. Prepare Input Preview
+# ------------------------------------------------------------
 
-    area_sqft = st.number_input("Area (sqft)", min_value=100, max_value=10000, value=1200)
-
-    bhk = st.selectbox("BHK", [1,2,3,4,5], index=0)
-
-with col2:
-    furnishing = st.selectbox("Furnishing", 
-                              ["Unfurnished","Semi-Furnished","Furnished"])
-
-    crime_rate = st.slider("Crime Rate (per 1000)", 0.0, 10.0, 2.5)
-
-    infrastructure = st.slider("Infrastructure Score", 1.0, 10.0, 7.0)
-
-    age = st.number_input("Age of Property (Years)", 0, 50, 10)
-
-# --------------------------------------
-# Build dataframe matching retrained model
-# --------------------------------------
-input_row = pd.DataFrame([{
+raw_input_df = pd.DataFrame([{
     "State": state,
     "City": city,
-    "Size_in_SqFt": area_sqft,
+    "Furnished_Status": furnish,
+    "Size_in_SqFt": size_sqft,
     "BHK": bhk,
-    "Furnished_Status": furnishing,
-    "Crime_Rate": crime_rate,
-    "Infrastructure_Score": infrastructure,
+    "Crime_Rate": crime,
+    "Infrastructure_Score": infra,
     "Age_of_Property": age
 }])
 
-st.write("### 🔍 Input Data Preview")
-st.dataframe(input_row)
+st.subheader("🔍 Input Data Preview")
+st.dataframe(raw_input_df)
 
-# --------------------------------------
-# Prediction
-# --------------------------------------
+# ------------------------------------------------------------
+# 6. Prediction Button
+# ------------------------------------------------------------
+
 if st.button("Predict"):
+
     try:
-        class_pred = classifier.predict(input_row)[0]
-        investment_label = "✅ Good Investment" if class_pred == 1 else "❌ Not a Good Investment"
+        # Ensure column order matches model training
+        input_prepared = raw_input_df[MODEL_FEATURES]
 
-        resale_pred = regressor.predict(input_row)[0]
+        st.subheader("🔧 Prepared Input Row (Aligned to Model Columns)")
+        st.dataframe(input_prepared)
 
-        st.subheader("📈 Prediction Results")
-        st.write(f"### Investment Classification: **{investment_label}**")
-        st.write(f"### Estimated Resale Value: **₹ {resale_pred:,.0f}**")
+        # CLASSIFICATION
+        class_pred = classifier.predict(input_prepared)[0]
+        class_label = "Good Investment" if class_pred == 1 else "Bad Investment"
+
+        # REGRESSION
+        reg_pred = float(regressor.predict(input_prepared)[0])
+
+        st.success(f"🏷 Investment Classification: **{class_label}**")
+        st.success(f"💰 Predicted Future Price (5Y): **₹ {reg_pred:,.0f}**")
 
     except Exception as e:
         st.error(f"Prediction Error: {e}")
-
