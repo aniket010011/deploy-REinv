@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import joblib
 
-# -----------------------------
+# ---------------------------------------------------------
 # Load Models
-# -----------------------------
+# ---------------------------------------------------------
 @st.cache_resource
 def load_models():
     classifier = joblib.load("best_classifier_XGBClassifier_py313.pkl")
@@ -14,37 +14,29 @@ def load_models():
 
 classifier, regressor = load_models()
 
-# -----------------------------
-# SAFE DEBUG: Show model expected input columns
-# -----------------------------
-try:
-    # This works for all sklearn Pipelines
-    expected_cols = classifier.named_steps["preprocess"].feature_names_in_
-    st.write("📌 DEBUG — Model expects columns:", list(expected_cols))
-except Exception as e:
-    st.write("⚠ DEBUG: Could not extract feature names:", str(e))
-
-# -----------------------------
-# Streamlit UI
-# -----------------------------
+# ---------------------------------------------------------
+# Streamlit UI Configuration
+# ---------------------------------------------------------
 st.set_page_config(page_title="Real Estate Investment Predictor", layout="wide")
 
 st.title("🏡 Real Estate Investment Predictor")
-st.write("Enter property details to classify *Good Investment* and predict *Resale Value*.")
+st.write("Enter property details to classify **Good Investment** and predict **Resale Value**.")
 
-# -----------------------------
+# ---------------------------------------------------------
 # User Inputs
-# -----------------------------
+# ---------------------------------------------------------
 st.header("📌 Enter Property Details")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    state = st.selectbox("State", 
-                         ["Maharashtra", "Delhi", "Karnataka", "Tamil Nadu", "Gujarat",
-                          "West Bengal", "Rajasthan", "Uttar Pradesh", "Telangana"], index=0)
+    state = st.selectbox(
+        "State",
+        ["Maharashtra", "Delhi", "Karnataka", "Tamil Nadu", "Gujarat",
+         "West Bengal", "Rajasthan", "Uttar Pradesh", "Telangana"]
+    )
     city = st.text_input("City", "Mumbai")
-    area_sqft = st.number_input("Area (sqft)", min_value=200, max_value=10000, value=1200, step=50)
+    area_sqft = st.number_input("Area (sqft)", min_value=200, max_value=10000, value=1200)
     bhk = st.selectbox("BHK", [1, 2, 3, 4, 5], index=1)
 
 with col2:
@@ -53,9 +45,9 @@ with col2:
     infrastructure_score = st.slider("Infrastructure Score", 1.0, 10.0, 7.0, 0.1)
     age = st.number_input("Age of Property (Years)", min_value=0, max_value=50, value=10)
 
-# -----------------------------
-# Prepare DataFrame
-# -----------------------------
+# ---------------------------------------------------------
+# Build Initial Input DataFrame
+# ---------------------------------------------------------
 input_data = pd.DataFrame({
     "State": [state],
     "City": [city],
@@ -67,7 +59,7 @@ input_data = pd.DataFrame({
     "Age": [age]
 })
 
-# Fix dtypes
+# Fix datatypes expected by sklearn pipeline
 input_data = input_data.astype({
     "State": "object",
     "City": "object",
@@ -82,27 +74,52 @@ input_data = input_data.astype({
 st.write("### 🔍 Input Data Preview")
 st.dataframe(input_data)
 
-# -----------------------------
-# Predict
-# -----------------------------
+# ---------------------------------------------------------
+# Prediction Logic
+# ---------------------------------------------------------
 if st.button("Predict"):
 
     try:
-        class_pred = classifier.predict(input_data)[0]
+        # -----------------------------
+        # 1. Load expected training columns
+        # -----------------------------
+        expected_cols = list(classifier.feature_names_in_)
+
+        # -----------------------------
+        # 2. Build a full row with all expected columns
+        # -----------------------------
+        full_row = pd.DataFrame([{col: None for col in expected_cols}])
+
+        # -----------------------------
+        # 3. Overwrite with user-provided values
+        # -----------------------------
+        for col in input_data.columns:
+            if col in full_row.columns:
+                full_row[col] = input_data[col].values[0]
+
+        # -----------------------------
+        # 4. Fill missing columns with safe values
+        # -----------------------------
+        for col in full_row.columns:
+            if pd.isna(full_row.at[0, col]):
+                # Numeric columns → 0
+                if pd.api.types.is_numeric_dtype(full_row[col]):
+                    full_row.at[0, col] = 0
+                else:
+                    # Categorical columns → "Unknown"
+                    full_row.at[0, col] = "Unknown"
+
+        # Debug display
+        st.write("### 🔧 Final Row Sent to Model (All Columns Present)")
+        st.dataframe(full_row)
+
+        # -----------------------------
+        # 5. Classification Prediction
+        # -----------------------------
+        class_pred = classifier.predict(full_row)[0]
         class_label = "✅ Good Investment" if class_pred == 1 else "❌ Not a Good Investment"
 
-        reg_pred = regressor.predict(input_data)[0]
-
-        st.subheader("📈 Results")
-        st.markdown(f"### Investment Classification: **{class_label}**")
-        st.markdown(f"### Estimated Resale Value: **₹ {reg_pred:,.0f}**")
-
-        try:
-            prob = classifier.predict_proba(input_data)[0][1]
-            st.write(f"Probability of GOOD investment: **{prob:.2f}**")
-        except:
-            pass
-
-    except Exception as e:
-        st.error(f"Prediction Error: {str(e)}")
-
+        # -----------------------------
+        # 6. Regression Prediction
+        # -----------------------------
+        reg_pred = regressor.predict(full_row)[0]
